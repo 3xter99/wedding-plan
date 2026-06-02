@@ -10,7 +10,6 @@ export function usePanelLoad<T>(
   pollIntervalMs = 15000
 ) {
   const [loading, setLoading] = useState(true);
-  const [loaded, setLoaded] = useState(false);
   const onDataRef = useRef(onData);
   onDataRef.current = onData;
   const fetcherRef = useRef(fetcher);
@@ -21,7 +20,6 @@ export function usePanelLoad<T>(
       const data = await fetcherRef.current(signal);
       if (signal?.aborted) return;
       onDataRef.current(data);
-      setLoaded(true);
       setLoading(false);
     } catch (err) {
       if (signal?.aborted) return;
@@ -31,14 +29,14 @@ export function usePanelLoad<T>(
   }, []);
 
   useEffect(() => {
-    if (!active || loaded) return;
+    if (!active) return;
 
     const controller = new AbortController();
     load(controller.signal);
     return () => controller.abort();
-  }, [active, loaded, load]);
+  }, [active, load]);
 
-  usePolling(() => load(), active && loaded, pollIntervalMs);
+  usePolling(() => load(), active, pollIntervalMs);
 
   return { loading, reload: () => load() };
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { useSupabase } from "@/components/providers/SupabaseProvider";
-import { useRealtimeTable } from "@/lib/useRealtimeTable";
+import { api } from "@/lib/api";
+import { usePanelLoad } from "@/lib/usePanelLoad";
 import type { ShoppingItem } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,28 +11,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardTitle } from "@/components/ui/card";
 
-export function ShoppingPanel({ userId }: { userId: string }) {
-  const supabase = useSupabase();
+export function ShoppingPanel({
+  userId,
+  active,
+}: {
+  userId: string;
+  active: boolean;
+}) {
   const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, reload: load } = usePanelLoad(
+    active,
+    (signal) => api.shopping.get(signal),
+    setItems
+  );
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("shopping_items")
-      .select("*")
-      .order("purchased", { ascending: true });
-
-    if (data) setItems(data as ShoppingItem[]);
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeTable(supabase, "shopping_items", load);
 
   const { purchasedSum, plannedSum, remainingPlanned } = useMemo(() => {
     const purchased = items.filter((i) => i.purchased);
@@ -52,11 +45,9 @@ export function ShoppingPanel({ userId }: { userId: string }) {
     const priceVal = price.trim() ? parseFloat(price) : null;
     if (price.trim() && (priceVal === null || isNaN(priceVal))) return;
 
-    await supabase.from("shopping_items").insert({
-      user_id: userId,
+    await api.shopping.create({
       name: name.trim(),
       price: priceVal,
-      purchased: false,
     });
     setName("");
     setPrice("");
@@ -64,15 +55,12 @@ export function ShoppingPanel({ userId }: { userId: string }) {
   }
 
   async function togglePurchased(item: ShoppingItem) {
-    await supabase
-      .from("shopping_items")
-      .update({ purchased: !item.purchased })
-      .eq("id", item.id);
+    await api.shopping.update(item.id, { purchased: !item.purchased });
     load();
   }
 
   async function deleteItem(id: string) {
-    await supabase.from("shopping_items").delete().eq("id", id);
+    await api.shopping.delete(id);
     load();
   }
 

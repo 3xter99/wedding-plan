@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -10,8 +10,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Trash2 } from "lucide-react";
-import { useSupabase } from "@/components/providers/SupabaseProvider";
-import { useRealtimeTable } from "@/lib/useRealtimeTable";
+import { api } from "@/lib/api";
+import { usePanelLoad } from "@/lib/usePanelLoad";
 import type { Budget, Expense } from "@/lib/types";
 import {
   budgetProgressColor,
@@ -43,11 +43,23 @@ const DEFAULT_CATEGORIES = [
   "Прочее",
 ];
 
-export function BudgetPanel({ userId }: { userId: string }) {
-  const supabase = useSupabase();
+export function BudgetPanel({
+  userId,
+  active,
+}: {
+  userId: string;
+  active: boolean;
+}) {
   const [budgetRows, setBudgetRows] = useState<Budget[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, reload: load } = usePanelLoad(
+    active,
+    (signal) => api.budget.get(signal),
+    (data) => {
+      setBudgetRows(data.budget);
+      setExpenses(data.expenses);
+    }
+  );
   const [totalInput, setTotalInput] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState(DEFAULT_CATEGORIES[0]);
@@ -55,24 +67,6 @@ export function BudgetPanel({ userId }: { userId: string }) {
   const [newDate, setNewDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
-
-  const load = useCallback(async () => {
-    const [budgetRes, expensesRes] = await Promise.all([
-      supabase.from("budget").select("*").order("created_at", { ascending: true }),
-      supabase.from("expenses").select("*").order("date", { ascending: false }),
-    ]);
-
-    if (budgetRes.data) setBudgetRows(budgetRes.data as Budget[]);
-    if (expensesRes.data) setExpenses(expensesRes.data as Expense[]);
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeTable(supabase, "budget", load);
-  useRealtimeTable(supabase, "expenses", load);
 
   const totalBudget = useMemo(() => {
     if (budgetRows.length === 0) return 0;
@@ -107,18 +101,7 @@ export function BudgetPanel({ userId }: { userId: string }) {
     const value = parseFloat(totalInput);
     if (isNaN(value) || value < 0) return;
 
-    if (budgetRows.length > 0) {
-      await Promise.all(
-        budgetRows.map((b) =>
-          supabase.from("budget").update({ total_budget: value }).eq("id", b.id)
-        )
-      );
-    } else {
-      await supabase.from("budget").insert({
-        user_id: userId,
-        total_budget: value,
-      });
-    }
+    await api.budget.setTotal(value);
     setTotalInput("");
     load();
   }
@@ -129,8 +112,7 @@ export function BudgetPanel({ userId }: { userId: string }) {
     const amount = parseFloat(newAmount);
     if (isNaN(amount)) return;
 
-    await supabase.from("expenses").insert({
-      user_id: userId,
+    await api.expenses.create({
       title: newTitle.trim(),
       category: newCategory,
       amount,
@@ -142,7 +124,7 @@ export function BudgetPanel({ userId }: { userId: string }) {
   }
 
   async function deleteExpense(id: string) {
-    await supabase.from("expenses").delete().eq("id", id);
+    await api.expenses.delete(id);
     load();
   }
 

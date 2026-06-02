@@ -21,6 +21,14 @@ export function DashboardClient({
   const supabase = useSupabase();
   const router = useRouter();
   const [tab, setTab] = useState<TabId>("budget");
+  const [visited, setVisited] = useState<Set<TabId>>(
+    () => new Set<TabId>(["budget"])
+  );
+
+  function selectTab(id: TabId) {
+    setTab(id);
+    setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -48,13 +56,29 @@ export function DashboardClient({
         </Button>
       </header>
 
-      <DashboardTabs active={tab} onChange={setTab} />
+      <DashboardTabs active={tab} onChange={selectTab} />
 
       <section className="mt-6">
-        {tab === "budget" && <BudgetPanel userId={userId} />}
-        {tab === "tasks" && <TasksPanel userId={userId} />}
-        {tab === "shopping" && <ShoppingPanel userId={userId} />}
-        {tab === "guests" && <GuestsPanel userId={userId} />}
+        {visited.has("budget") && (
+          <div className={tab === "budget" ? undefined : "hidden"}>
+            <BudgetPanel userId={userId} active={tab === "budget"} />
+          </div>
+        )}
+        {visited.has("tasks") && (
+          <div className={tab === "tasks" ? undefined : "hidden"}>
+            <TasksPanel userId={userId} active={tab === "tasks"} />
+          </div>
+        )}
+        {visited.has("shopping") && (
+          <div className={tab === "shopping" ? undefined : "hidden"}>
+            <ShoppingPanel userId={userId} active={tab === "shopping"} />
+          </div>
+        )}
+        {visited.has("guests") && (
+          <div className={tab === "guests" ? undefined : "hidden"}>
+            <GuestsPanel userId={userId} active={tab === "guests"} />
+          </div>
+        )}
       </section>
     </div>
   );

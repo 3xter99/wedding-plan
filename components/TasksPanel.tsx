@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { useSupabase } from "@/components/providers/SupabaseProvider";
-import { useRealtimeTable } from "@/lib/useRealtimeTable";
+import { api } from "@/lib/api";
+import { usePanelLoad } from "@/lib/usePanelLoad";
 import type { Task } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,29 +13,22 @@ import { Card, CardTitle } from "@/components/ui/card";
 
 type Filter = "all" | "active" | "completed";
 
-export function TasksPanel({ userId }: { userId: string }) {
-  const supabase = useSupabase();
+export function TasksPanel({
+  userId,
+  active,
+}: {
+  userId: string;
+  active: boolean;
+}) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, reload: load } = usePanelLoad(
+    active,
+    (signal) => api.tasks.get(signal),
+    setTasks
+  );
   const [filter, setFilter] = useState<Filter>("all");
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
-
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("tasks")
-      .select("*")
-      .order("deadline", { ascending: true, nullsFirst: false });
-
-    if (data) setTasks(data as Task[]);
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeTable(supabase, "tasks", load);
 
   const filtered = useMemo(() => {
     let list = [...tasks];
@@ -53,11 +46,9 @@ export function TasksPanel({ userId }: { userId: string }) {
     e.preventDefault();
     if (!userId || !title.trim()) return;
 
-    await supabase.from("tasks").insert({
-      user_id: userId,
+    await api.tasks.create({
       title: title.trim(),
       deadline: deadline || null,
-      completed: false,
     });
     setTitle("");
     setDeadline("");
@@ -65,15 +56,12 @@ export function TasksPanel({ userId }: { userId: string }) {
   }
 
   async function toggleCompleted(task: Task) {
-    await supabase
-      .from("tasks")
-      .update({ completed: !task.completed })
-      .eq("id", task.id);
+    await api.tasks.update(task.id, { completed: !task.completed });
     load();
   }
 
   async function deleteTask(id: string) {
-    await supabase.from("tasks").delete().eq("id", id);
+    await api.tasks.delete(id);
     load();
   }
 

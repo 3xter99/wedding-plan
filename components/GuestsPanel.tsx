@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { useSupabase } from "@/components/providers/SupabaseProvider";
-import { useRealtimeTable } from "@/lib/useRealtimeTable";
+import { api } from "@/lib/api";
+import { usePanelLoad } from "@/lib/usePanelLoad";
 import type { Guest, GuestStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardTitle } from "@/components/ui/card";
 
 const STATUS_LABELS: Record<GuestStatus, string> = {
@@ -16,27 +15,20 @@ const STATUS_LABELS: Record<GuestStatus, string> = {
   declined: "Отказался",
 };
 
-export function GuestsPanel({ userId }: { userId: string }) {
-  const supabase = useSupabase();
+export function GuestsPanel({
+  userId,
+  active,
+}: {
+  userId: string;
+  active: boolean;
+}) {
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, reload: load } = usePanelLoad(
+    active,
+    (signal) => api.guests.get(signal),
+    setGuests
+  );
   const [name, setName] = useState("");
-
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("guests")
-      .select("*")
-      .order("name", { ascending: true });
-
-    if (data) setGuests(data as Guest[]);
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useRealtimeTable(supabase, "guests", load);
 
   const stats = useMemo(
     () => ({
@@ -52,22 +44,18 @@ export function GuestsPanel({ userId }: { userId: string }) {
     e.preventDefault();
     if (!userId || !name.trim()) return;
 
-    await supabase.from("guests").insert({
-      user_id: userId,
-      name: name.trim(),
-      status: "invited" as GuestStatus,
-    });
+    await api.guests.create(name.trim());
     setName("");
     load();
   }
 
   async function updateStatus(id: string, status: GuestStatus) {
-    await supabase.from("guests").update({ status }).eq("id", id);
+    await api.guests.update(id, status);
     load();
   }
 
   async function deleteGuest(id: string) {
-    await supabase.from("guests").delete().eq("id", id);
+    await api.guests.delete(id);
     load();
   }
 

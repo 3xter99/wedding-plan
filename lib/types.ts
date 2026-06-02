@@ -29,7 +29,10 @@ export interface ShoppingItem {
   user_id: string;
   name: string;
   price: number | null;
+  category: string;
+  date: string;
   purchased: boolean;
+  expense_id: string | null;
 }
 
 export interface Guest {

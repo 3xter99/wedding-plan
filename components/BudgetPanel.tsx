@@ -9,7 +9,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { usePanelLoad } from "@/lib/usePanelLoad";
 import type { Budget, Expense } from "@/lib/types";
@@ -20,7 +19,6 @@ import {
 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardTitle } from "@/components/ui/card";
 
 const CHART_COLORS = [
@@ -31,16 +29,6 @@ const CHART_COLORS = [
   "#7c3aed",
   "#0891b2",
   "#db2777",
-];
-
-const DEFAULT_CATEGORIES = [
-  "Площадка",
-  "Кейтеринг",
-  "Декор",
-  "Одежда",
-  "Фото/видео",
-  "Музыка",
-  "Прочее",
 ];
 
 export function BudgetPanel({
@@ -61,12 +49,6 @@ export function BudgetPanel({
     }
   );
   const [totalInput, setTotalInput] = useState("");
-  const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState(DEFAULT_CATEGORIES[0]);
-  const [newAmount, setNewAmount] = useState("");
-  const [newDate, setNewDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
 
   const totalBudget = useMemo(() => {
     if (budgetRows.length === 0) return 0;
@@ -103,28 +85,6 @@ export function BudgetPanel({
 
     await api.budget.setTotal(value);
     setTotalInput("");
-    load();
-  }
-
-  async function addExpense(e: React.FormEvent) {
-    e.preventDefault();
-    if (!userId || !newTitle.trim()) return;
-    const amount = parseFloat(newAmount);
-    if (isNaN(amount)) return;
-
-    await api.expenses.create({
-      title: newTitle.trim(),
-      category: newCategory,
-      amount,
-      date: newDate,
-    });
-    setNewTitle("");
-    setNewAmount("");
-    load();
-  }
-
-  async function deleteExpense(id: string) {
-    await api.expenses.delete(id);
     load();
   }
 
@@ -184,126 +144,67 @@ export function BudgetPanel({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardTitle>Расходы по категориям</CardTitle>
-          {categoryData.length === 0 ? (
-            <p className="mt-4 text-sm text-rose-500">Нет расходов</p>
-          ) : (
-            <div className="mt-4 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                  >
-                    {categoryData.map((_, i) => (
-                      <Cell
-                        key={i}
-                        fill={CHART_COLORS[i % CHART_COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <CardTitle>Добавить расход</CardTitle>
-          <form onSubmit={addExpense} className="mt-4 space-y-3">
-            <div>
-              <Label>Название</Label>
-              <Input
-                value={newTitle}
-                onChange={(ev) => setNewTitle(ev.target.value)}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Категория</Label>
-                <select
-                  className="flex h-10 w-full rounded-lg border border-rose-200 bg-white px-3 text-sm"
-                  value={newCategory}
-                  onChange={(ev) => setNewCategory(ev.target.value)}
+      <Card>
+        <CardTitle>Расходы по категориям</CardTitle>
+        {categoryData.length === 0 ? (
+          <p className="mt-4 text-sm text-rose-500">Нет расходов</p>
+        ) : (
+          <div className="mt-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                 >
-                  {DEFAULT_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
+                  {categoryData.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={CHART_COLORS[i % CHART_COLORS.length]}
+                    />
                   ))}
-                </select>
-              </div>
-              <div>
-                <Label>Сумма</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={newAmount}
-                  onChange={(ev) => setNewAmount(ev.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Дата</Label>
-              <Input
-                type="date"
-                value={newDate}
-                onChange={(ev) => setNewDate(ev.target.value)}
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              Добавить
-            </Button>
-          </form>
-        </Card>
-      </div>
+                </Pie>
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Card>
 
       <Card>
         <CardTitle>Список расходов</CardTitle>
+        <p className="mt-1 text-sm text-rose-500">
+          Расходы появляются здесь, когда покупку отмечают галочкой во вкладке
+          «Покупки».
+        </p>
         <ul className="mt-4 divide-y divide-rose-50">
-          {expenses.map((exp) => (
-            <li
-              key={exp.id}
-              className="flex flex-wrap items-center justify-between gap-2 py-3"
-            >
-              <div>
-                <p className="font-medium text-rose-950">{exp.title}</p>
-                <p className="text-sm text-rose-600">
-                  {exp.category} · {formatDate(exp.date)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
+          {expenses.length === 0 ? (
+            <li className="py-6 text-center text-rose-500">Нет расходов</li>
+          ) : (
+            expenses.map((exp) => (
+              <li
+                key={exp.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-3"
+              >
+                <div>
+                  <p className="font-medium text-rose-950">{exp.title}</p>
+                  <p className="text-sm text-rose-600">
+                    {exp.category} · {formatDate(exp.date)}
+                  </p>
+                </div>
                 <span className="font-semibold text-rose-900">
                   {formatCurrency(Number(exp.amount))}
                 </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteExpense(exp.id)}
-                  aria-label="Удалить"
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </div>
-            </li>
-          ))}
+              </li>
+            ))
+          )}
         </ul>
       </Card>
     </div>

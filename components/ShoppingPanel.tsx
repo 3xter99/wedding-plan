@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { DEFAULT_CATEGORIES } from "@/lib/budgetCategories";
 import { usePanelLoad } from "@/lib/usePanelLoad";
 import type { ShoppingItem } from "@/lib/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,10 @@ export function ShoppingPanel({
     setItems
   );
   const [name, setName] = useState("");
+  const [category, setCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [price, setPrice] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [error, setError] = useState("");
 
   const { purchasedSum, plannedSum, remainingPlanned } = useMemo(() => {
     const purchased = items.filter((i) => i.purchased);
@@ -42,12 +46,15 @@ export function ShoppingPanel({
     e.preventDefault();
     if (!userId || !name.trim()) return;
 
-    const priceVal = price.trim() ? parseFloat(price) : null;
-    if (price.trim() && (priceVal === null || isNaN(priceVal))) return;
+    const priceVal = parseFloat(price);
+    if (isNaN(priceVal) || priceVal < 0) return;
 
+    setError("");
     await api.shopping.create({
       name: name.trim(),
       price: priceVal,
+      category,
+      date,
     });
     setName("");
     setPrice("");
@@ -55,8 +62,13 @@ export function ShoppingPanel({
   }
 
   async function togglePurchased(item: ShoppingItem) {
-    await api.shopping.update(item.id, { purchased: !item.purchased });
-    load();
+    setError("");
+    try {
+      await api.shopping.update(item.id, { purchased: !item.purchased });
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось обновить покупку");
+    }
   }
 
   async function deleteItem(id: string) {
@@ -74,6 +86,9 @@ export function ShoppingPanel({
           <p className="mt-2 text-2xl font-bold text-emerald-700">
             {formatCurrency(purchasedSum)}
           </p>
+          <p className="mt-1 text-xs text-rose-500">
+            Учитывается в бюджете после галочки
+          </p>
         </Card>
         <Card>
           <CardTitle>Всего в списке</CardTitle>
@@ -89,13 +104,16 @@ export function ShoppingPanel({
         </Card>
       </div>
 
+      {error && (
+        <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+
       <Card>
         <CardTitle>Добавить покупку</CardTitle>
-        <form
-          onSubmit={addItem}
-          className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
-        >
-          <div className="flex-1">
+        <form onSubmit={addItem} className="mt-4 space-y-3">
+          <div>
             <Label>Название</Label>
             <Input
               value={name}
@@ -103,16 +121,44 @@ export function ShoppingPanel({
               required
             />
           </div>
-          <div className="w-full sm:w-36">
-            <Label>Цена (необяз.)</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Категория</Label>
+              <select
+                className="flex h-10 w-full rounded-lg border border-rose-200 bg-white px-3 text-sm"
+                value={category}
+                onChange={(ev) => setCategory(ev.target.value)}
+              >
+                {DEFAULT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Сумма</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={price}
+                onChange={(ev) => setPrice(ev.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Дата</Label>
             <Input
-              type="number"
-              min={0}
-              value={price}
-              onChange={(ev) => setPrice(ev.target.value)}
+              type="date"
+              value={date}
+              onChange={(ev) => setDate(ev.target.value)}
             />
           </div>
-          <Button type="submit">Добавить</Button>
+          <Button type="submit" className="w-full sm:w-auto">
+            Добавить
+          </Button>
         </form>
       </Card>
 
@@ -122,10 +168,7 @@ export function ShoppingPanel({
             <li className="py-6 text-center text-rose-500">Список пуст</li>
           ) : (
             items.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 py-3"
-              >
+              <li key={item.id} className="flex items-center gap-3 py-3">
                 <input
                   type="checkbox"
                   checked={item.purchased}
@@ -141,6 +184,9 @@ export function ShoppingPanel({
                     }`}
                   >
                     {item.name}
+                  </p>
+                  <p className="text-sm text-rose-600">
+                    {item.category} · {formatDate(item.date)}
                   </p>
                 </div>
                 <span className="text-sm font-semibold text-rose-800">

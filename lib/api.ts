@@ -35,22 +35,6 @@ export const api = {
         body: JSON.stringify({ total_budget }),
       }),
   },
-  expenses: {
-    create: (data: {
-      title: string;
-      category: string;
-      amount: number;
-      date: string;
-    }) =>
-      request<Expense>("/api/expenses", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    delete: (id: string) =>
-      request<void>(`/api/expenses?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      }),
-  },
   tasks: {
     get: (signal?: AbortSignal) => request<Task[]>("/api/tasks", { signal }),
     create: (data: { title: string; deadline: string | null }) =>
@@ -71,12 +55,22 @@ export const api = {
   shopping: {
     get: (signal?: AbortSignal) =>
       request<ShoppingItem[]>("/api/shopping", { signal }),
-    create: (data: { name: string; price: number | null }) =>
+    create: (data: {
+      name: string;
+      price: number | null;
+      category: string;
+      date: string;
+    }) =>
       request<ShoppingItem>("/api/shopping", {
         method: "POST",
         body: JSON.stringify(data),
       }),
-    update: (id: string, data: Partial<Pick<ShoppingItem, "purchased">>) =>
+    update: (
+      id: string,
+      data: Partial<
+        Pick<ShoppingItem, "purchased" | "name" | "price" | "category" | "date">
+      >
+    ) =>
       request<ShoppingItem>("/api/shopping", {
         method: "PATCH",
         body: JSON.stringify({ id, ...data }),

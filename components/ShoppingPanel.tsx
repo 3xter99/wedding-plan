@@ -11,21 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardTitle } from "@/components/ui/card";
 
-export function ShoppingPanel() {
+export function ShoppingPanel({ userId }: { userId: string }) {
   const supabase = useSupabase();
   const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    setUserId(user.id);
-
     const { data } = await supabase
       .from("shopping_items")
       .select("*")

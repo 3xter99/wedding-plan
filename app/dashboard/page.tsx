@@ -5,12 +5,17 @@ import { DashboardClient } from "@/components/DashboardClient";
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (!session?.user) {
     redirect("/login");
   }
 
-  return <DashboardClient email={user.email ?? ""} />;
+  return (
+    <DashboardClient
+      email={session.user.email ?? ""}
+      userId={session.user.id}
+    />
+  );
 }

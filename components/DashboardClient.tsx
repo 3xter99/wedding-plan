@@ -11,7 +11,13 @@ import { ShoppingPanel } from "@/components/ShoppingPanel";
 import { GuestsPanel } from "@/components/GuestsPanel";
 import { Button } from "@/components/ui/button";
 
-export function DashboardClient({ email }: { email: string }) {
+export function DashboardClient({
+  email,
+  userId,
+}: {
+  email: string;
+  userId: string;
+}) {
   const supabase = useSupabase();
   const router = useRouter();
   const [tab, setTab] = useState<TabId>("budget");
@@ -45,10 +51,10 @@ export function DashboardClient({ email }: { email: string }) {
       <DashboardTabs active={tab} onChange={setTab} />
 
       <section className="mt-6">
-        {tab === "budget" && <BudgetPanel />}
-        {tab === "tasks" && <TasksPanel />}
-        {tab === "shopping" && <ShoppingPanel />}
-        {tab === "guests" && <GuestsPanel />}
+        {tab === "budget" && <BudgetPanel userId={userId} />}
+        {tab === "tasks" && <TasksPanel userId={userId} />}
+        {tab === "shopping" && <ShoppingPanel userId={userId} />}
+        {tab === "guests" && <GuestsPanel userId={userId} />}
       </section>
     </div>
   );

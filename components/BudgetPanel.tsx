@@ -43,11 +43,10 @@ const DEFAULT_CATEGORIES = [
   "Прочее",
 ];
 
-export function BudgetPanel() {
+export function BudgetPanel({ userId }: { userId: string }) {
   const supabase = useSupabase();
   const [budgetRows, setBudgetRows] = useState<Budget[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [totalInput, setTotalInput] = useState("");
   const [newTitle, setNewTitle] = useState("");
@@ -58,12 +57,6 @@ export function BudgetPanel() {
   );
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    setUserId(user.id);
-
     const [budgetRes, expensesRes] = await Promise.all([
       supabase.from("budget").select("*").order("created_at", { ascending: true }),
       supabase.from("expenses").select("*").order("date", { ascending: false }),

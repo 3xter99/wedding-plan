@@ -13,22 +13,15 @@ import { Card, CardTitle } from "@/components/ui/card";
 
 type Filter = "all" | "active" | "completed";
 
-export function TasksPanel() {
+export function TasksPanel({ userId }: { userId: string }) {
   const supabase = useSupabase();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    setUserId(user.id);
-
     const { data } = await supabase
       .from("tasks")
       .select("*")

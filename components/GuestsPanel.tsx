@@ -16,20 +16,13 @@ const STATUS_LABELS: Record<GuestStatus, string> = {
   declined: "Отказался",
 };
 
-export function GuestsPanel() {
+export function GuestsPanel({ userId }: { userId: string }) {
   const supabase = useSupabase();
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    setUserId(user.id);
-
     const { data } = await supabase
       .from("guests")
       .select("*")

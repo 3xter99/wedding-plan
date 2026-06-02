@@ -15,6 +15,28 @@ const STATUS_LABELS: Record<GuestStatus, string> = {
   declined: "Отказался",
 };
 
+const STATUS_SELECT_CLASSES: Record<GuestStatus, string> = {
+  invited: "border-amber-300 bg-amber-50 text-amber-800 focus:ring-amber-300",
+  confirmed:
+    "border-emerald-300 bg-emerald-50 text-emerald-800 focus:ring-emerald-300",
+  declined: "border-red-300 bg-red-50 text-red-800 focus:ring-red-300",
+};
+
+const STATUS_OPTION_CLASSES: Record<GuestStatus, string> = {
+  invited: "bg-amber-50 text-amber-800",
+  confirmed: "bg-emerald-50 text-emerald-800",
+  declined: "bg-red-50 text-red-800",
+};
+
+const STATUS_OPTION_COLORS: Record<
+  GuestStatus,
+  { backgroundColor: string; color: string }
+> = {
+  invited: { backgroundColor: "#fffbeb", color: "#92400e" },
+  confirmed: { backgroundColor: "#ecfdf5", color: "#047857" },
+  declined: { backgroundColor: "#fef2f2", color: "#dc2626" },
+};
+
 export function GuestsPanel({
   userId,
   active,
@@ -129,7 +151,7 @@ export function GuestsPanel({
                   </td>
                   <td className="py-3 pr-4">
                     <select
-                      className="rounded-lg border border-rose-200 bg-white px-2 py-1.5 text-sm"
+                      className={`rounded-lg border px-2 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 ${STATUS_SELECT_CLASSES[guest.status]}`}
                       value={guest.status}
                       onChange={(ev) =>
                         updateStatus(guest.id, ev.target.value as GuestStatus)
@@ -137,7 +159,12 @@ export function GuestsPanel({
                     >
                       {(Object.keys(STATUS_LABELS) as GuestStatus[]).map(
                         (s) => (
-                          <option key={s} value={s}>
+                          <option
+                            key={s}
+                            value={s}
+                            className={STATUS_OPTION_CLASSES[s]}
+                            style={STATUS_OPTION_COLORS[s]}
+                          >
                             {STATUS_LABELS[s]}
                           </option>
                         )

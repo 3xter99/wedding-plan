@@ -1,5 +1,17 @@
 export type GuestStatus = "invited" | "confirmed" | "declined";
 
+export type FundMovementType = "income" | "withdrawal";
+
+export interface FundMovement {
+  id: string;
+  user_id: string;
+  type: FundMovementType;
+  title: string;
+  amount: number;
+  date: string;
+  note: string | null;
+}
+
 export interface Budget {
   id: string;
   user_id: string;

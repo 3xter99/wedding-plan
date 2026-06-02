@@ -1,4 +1,13 @@
-import type { Budget, Expense, Guest, GuestStatus, ShoppingItem, Task } from "@/lib/types";
+import type {
+  Budget,
+  Expense,
+  FundMovement,
+  FundMovementType,
+  Guest,
+  GuestStatus,
+  ShoppingItem,
+  Task,
+} from "@/lib/types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -26,13 +35,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   budget: {
     get: (signal?: AbortSignal) =>
-      request<{ budget: Budget[]; expenses: Expense[] }>("/api/budget", {
+      request<{
+        budget: Budget[];
+        expenses: Expense[];
+        fund_movements: FundMovement[];
+      }>("/api/budget", {
         signal,
       }),
     setTotal: (total_budget: number) =>
       request<void>("/api/budget", {
         method: "PUT",
         body: JSON.stringify({ total_budget }),
+      }),
+  },
+  fundMovements: {
+    create: (data: {
+      type: FundMovementType;
+      title: string;
+      amount: number;
+      date: string;
+      note?: string | null;
+    }) =>
+      request<FundMovement>("/api/fund-movements", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      request<void>(`/api/fund-movements?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
       }),
   },
   tasks: {

@@ -7,9 +7,13 @@ export async function GET() {
 
   const { supabase } = auth;
 
-  const [budgetRes, expensesRes] = await Promise.all([
+  const [budgetRes, expensesRes, movementsRes] = await Promise.all([
     supabase.from("budget").select("*").order("created_at", { ascending: true }),
     supabase.from("expenses").select("*").order("date", { ascending: false }),
+    supabase
+      .from("fund_movements")
+      .select("*")
+      .order("date", { ascending: false }),
   ]);
 
   if (budgetRes.error) {
@@ -18,10 +22,14 @@ export async function GET() {
   if (expensesRes.error) {
     return NextResponse.json({ error: expensesRes.error.message }, { status: 500 });
   }
+  if (movementsRes.error) {
+    return NextResponse.json({ error: movementsRes.error.message }, { status: 500 });
+  }
 
   return NextResponse.json({
     budget: budgetRes.data ?? [],
     expenses: expensesRes.data ?? [],
+    fund_movements: movementsRes.data ?? [],
   });
 }
 

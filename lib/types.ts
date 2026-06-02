@@ -47,9 +47,17 @@ export interface ShoppingItem {
   expense_id: string | null;
 }
 
+export interface WeddingEvent {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface Guest {
   id: string;
   user_id: string;
+  event_id: string;
   name: string;
   status: GuestStatus;
 }

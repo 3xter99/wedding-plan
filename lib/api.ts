@@ -7,6 +7,7 @@ import type {
   GuestStatus,
   ShoppingItem,
   Task,
+  WeddingEvent,
 } from "@/lib/types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -110,17 +111,41 @@ export const api = {
         method: "DELETE",
       }),
   },
-  guests: {
-    get: (signal?: AbortSignal) => request<Guest[]>("/api/guests", { signal }),
+  events: {
+    get: (signal?: AbortSignal) =>
+      request<WeddingEvent[]>("/api/events", { signal }),
     create: (name: string) =>
-      request<Guest>("/api/guests", {
+      request<WeddingEvent>("/api/events", {
         method: "POST",
         body: JSON.stringify({ name }),
       }),
-    update: (id: string, status: GuestStatus) =>
+    update: (id: string, name: string) =>
+      request<WeddingEvent>("/api/events", {
+        method: "PATCH",
+        body: JSON.stringify({ id, name }),
+      }),
+    delete: (id: string) =>
+      request<void>(`/api/events?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
+  },
+  guests: {
+    get: (eventId: string, signal?: AbortSignal) =>
+      request<Guest[]>(`/api/guests?event_id=${encodeURIComponent(eventId)}`, {
+        signal,
+      }),
+    create: (eventId: string, name: string) =>
+      request<Guest>("/api/guests", {
+        method: "POST",
+        body: JSON.stringify({ event_id: eventId, name }),
+      }),
+    update: (
+      id: string,
+      data: Partial<Pick<Guest, "status" | "name">>
+    ) =>
       request<Guest>("/api/guests", {
         method: "PATCH",
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ id, ...data }),
       }),
     delete: (id: string) =>
       request<void>(`/api/guests?id=${encodeURIComponent(id)}`, {
